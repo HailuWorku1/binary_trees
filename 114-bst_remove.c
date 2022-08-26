@@ -1,55 +1,98 @@
 #include "binary_trees.h"
 
 /**
- * bst_remove - removes a node from a Binary Search Tree
- * @root: a pointer to the root node of the tree where you will remove a node
- * @value: the value to remove in the tree
- * Return: a pointer to the new root node of the tree after removal
- *         NULL on failure
+ * bst_remove - remove a node from a Binary Search Tree
+ * @root: BST root to be removed
+ * @value: value to find in the tree
+ * Return: new BST root
  */
 bst_t *bst_remove(bst_t *root, int value)
 {
-	bst_t *tmp = NULL;
+	bst_t *tmp = NULL, *node = NULL;
 
 	if (!root)
 		return (NULL);
-
-	if (value < root->n)
-		root->left = bst_remove(root->left, value);
-	else if (value > root->n)
-		root->right = bst_remove(root->right, value);
-	else
+	if (!root->left && !root->right)
 	{
-		if (!root->left)
-		{
-			tmp = root->right;
-			free(root);
-			return (tmp);
-		}
-		else if (!root->right)
-		{
-			tmp = root->left;
-			free(root);
-			return (tmp);
-		}
-		tmp = bst_min_val(root->right);
-		root->n = tmp->n;
-		root->right = bst_remove(root->right, tmp->n);
+		free(root);
+		return (NULL);
 	}
+	tmp = bst_search(root, value);
+	if (tmp->left && tmp->right && tmp->right->left)
+	{
+		node = new_root_inorder(tmp);
+		if (node->parent->left == node)
+			node->parent->left = NULL;
+		else
+			node->parent->right = NULL;
+		tmp->left->parent = node, tmp->right->parent = node;
+		node->left = tmp->left, node->right = tmp->right;
+	}
+	else if (tmp->right)
+	{
+		node = tmp->right, node->parent = tmp->parent, node->left = tmp->left;
+		if (tmp->left)
+			tmp->left->parent = node;
+	}
+	else if (tmp->left)
+		node = tmp->left, node->parent = tmp->parent;
+
+	if (tmp->parent && (tmp->parent->left == tmp))
+		tmp->parent->left = node;
+	else if (tmp->parent)
+		tmp->parent->right = node;
+	if (tmp->parent && node)
+		node->parent = tmp->parent;
+	else if (node)
+		node->parent = NULL, root = node;
+	free(tmp);
 	return (root);
 }
 
 /**
- * bst_min_val - finds the smallest node from a Binary Search Tree
- * @root: a pointer to the root node of the tree
- * Return: a pointer to the smallest node
+ * new_root_inorder - find the first node of in-order traversal
+ * @tree: pointer to the root node of the BST to traverse
+ * Return: pointer to the node, or null
  */
-bst_t *bst_min_val(bst_t *root)
+bst_t *new_root_inorder(bst_t *tree)
 {
-	bst_t *min = root;
+	bst_t *current = NULL; /* Morris Traversal, no stack */
 
-	while (min->left)
-		min = min->left;
+	current = tree;
+	if (current->right)
+	{
+		current = current->right;
+		while (current)
+		{
+			if (current->left)
+				current = current->left;
+			else
+				return (current);
+			if (current && (current->left == NULL) && (current->right == NULL))
+				break;
+		}
+	}
+	return (current);
+}
 
-	return (min);
+/**
+ * bst_search - search for a value in a Binary Search Tree
+ * @tree: pointer to the root node of the tree to traverse
+ * @value: value to store in the new node
+ * Return: BST node of value, or null if failed
+ */
+bst_t *bst_search(const bst_t *tree, int value)
+{
+	if (!tree)
+		return (NULL);
+	while (tree)
+	{
+		if (tree->n == value)
+			return ((bst_t *)tree);
+		if (tree->n > value)
+			tree = tree->left;
+		if (tree->n < value)
+			tree = tree->right;
+	}
+	return (NULL);
 }
